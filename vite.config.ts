@@ -3,7 +3,6 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-
 function figmaAssetResolver() {
   return {
     name: 'figma-asset-resolver',
@@ -17,23 +16,32 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
+  base: '/faj/',
+
   plugins: [
     figmaAssetResolver(),
+
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
     react(),
     tailwindcss(),
   ],
+
   resolve: {
     alias: {
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
-      '@supabase/supabase-js': path.resolve(__dirname, './src/lib/supabaseClientShim.ts'),
+
+      '@supabase/supabase-js': path.resolve(
+        __dirname,
+        './src/lib/supabaseClientShim.ts'
+      ),
     },
   },
 
   build: {
     chunkSizeWarningLimit: 700,
+
     rollupOptions: {
       output: {
         manualChunks: {
