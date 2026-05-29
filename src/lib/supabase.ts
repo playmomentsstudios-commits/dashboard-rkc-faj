@@ -1,82 +1,71 @@
-import { projectId, publicAnonKey } from '../../utils/supabase/info';
+import { createClient } from '@supabase/supabase-js';
+import type { Project, Transaction } from '../types/supabase';
 
-export const supabaseUrl = `https://${projectId}.supabase.co`;
-
-export type QueryParams = Record<string, string | number | boolean | null | undefined>;
-
-class SupabaseRestQuery<T> {
-  private params = new URLSearchParams();
-
-  constructor(private table: string) {}
-
-  select(columns = '*') {
-    this.params.set('select', columns);
-    return this;
-  }
-
-  eq(column: string, value: string | number | boolean) {
-    this.params.set(column, `eq.${value}`);
-    return this;
-  }
-
-  order(column: string, options: { ascending?: boolean } = {}) {
-    this.params.set('order', `${column}.${options.ascending === false ? 'desc' : 'asc'}`);
-    return this;
-  }
-
-  limit(count: number) {
-    this.params.set('limit', String(count));
-    return this;
-  }
-
-  async execute(): Promise<{ data: T[] | null; error: Error | null }> {
-    const endpoint = `${supabaseUrl}/rest/v1/${this.table}?${this.params.toString()}`;
-
-    try {
-      const response = await fetch(endpoint, {
-        headers: {
-          apikey: publicAnonKey,
-          Authorization: `Bearer ${publicAnonKey}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const message = await response.text();
-        return { data: null, error: new Error(message || `Supabase HTTP ${response.status}`) };
-      }
-
-      return { data: (await response.json()) as T[], error: null };
-    } catch (error) {
-      return { data: null, error: error instanceof Error ? error : new Error('Erro desconhecido ao consultar o Supabase') };
-    }
-  }
-
-  then<TResult1 = { data: T[] | null; error: Error | null }, TResult2 = never>(
-    onfulfilled?: ((value: { data: T[] | null; error: Error | null }) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
-  ) {
-    return this.execute().then(onfulfilled, onrejected);
-  }
-}
-
-export function createClient(url: string, anonKey: string) {
-  return {
-    url,
-    anonKey,
-    from<T>(table: string) {
-      return new SupabaseRestQuery<T>(table);
-    },
-    storage: {
-      from(bucket: string) {
-        return {
-          getPublicUrl(path: string) {
-            return { data: { publicUrl: `${url}/storage/v1/object/public/${bucket}/${path}` } };
-          },
-        };
-      },
-    },
+type PublicSchema = {
+  Tables: {
+    projects: {
+      Row: Project;
+      Insert: never;
+      Update: never;
+    };
+    transactions: {
+      Row: Transaction;
+      Insert: never;
+      Update: never;
+    };
   };
-}
+  Views: Record<string, never>;
+  Functions: Record<string, never>;
+  Enums: Record<string, never>;
+  CompositeTypes: Record<string, never>;
+};
 
-export const supabase = createClient(supabaseUrl, publicAnonKey);
+export type SupabaseDatabase = {
+  public: PublicSchema;
+};
+
+const normalizeUrl = (value: string | undefined) => value?.trim().replace(/\/+$/, '') ?? '';
+const normalizeKey = (value: string | undefined) => value?.trim() ?? '';
+
+export const supabaseUrl = normalizeUrl(import.meta.env.VITE_SUPABASE_URL);
+export const supabaseAnonKey = normalizeKey(import.meta.env.VITE_SUPABASE_ANON_KEY);
+
+const missingEnvNames = [
+  ['VITE_SUPABASE_URL', supabaseUrl],
+  ['VITE_SUPABASE_ANON_KEY', supabaseAnonKey],
+]
+  .filter(([, value]) => !value)
+  .map(([name]) => name);
+
+const invalidSupabaseUrl = Boolean(supabaseUrl) && !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl);
+
+export const supabaseConfigError = missingEnvNames.length
+  ? `Configuração do Supabase incompleta. Defina ${missingEnvNames.join(' e ')} nas variáveis de ambiente da Vercel/Vite.`
+  : invalidSupabaseUrl
+    ? 'VITE_SUPABASE_URL deve ser a URL HTTPS do projeto Supabase, por exemplo https://seu-projeto.supabase.co.'
+    : null;
+
+// The client is still created with safe placeholders so the React bundle can render
+// an actionable error state instead of crashing during module initialization when
+// an environment variable is missing in production.
+const clientUrl = supabaseUrl || 'https://missing-project.supabase.co';
+const clientAnonKey = supabaseAnonKey || 'missing-anon-key';
+
+export const supabase = createClient<SupabaseDatabase>(clientUrl, clientAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'dashboard-rkc-faj-public',
+    },
+  },
+});
+
+export function assertSupabaseConfigured() {
+  if (supabaseConfigError) {
+    throw new Error(supabaseConfigError);
+  }
+}

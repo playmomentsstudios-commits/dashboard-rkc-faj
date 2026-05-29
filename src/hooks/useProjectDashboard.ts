@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { calculateMetrics, groupByMonth, groupByRubrica } from '../services/analytics';
-import { getProjectBySlug, getTransactionsByProject } from '../services/projects';
+import { getProjectDashboardBySlug } from '../services/projects';
 import type { ProjectDashboardData } from '../types/supabase';
 
 export function useProjectDashboard(slug: string) {
@@ -16,21 +15,7 @@ export function useProjectDashboard(slug: string) {
       setError(null);
 
       try {
-        const project = await getProjectBySlug(slug);
-
-        if (!project) {
-          if (active) setData(null);
-          return;
-        }
-
-        const transactions = await getTransactionsByProject(project.id);
-        const dashboardData: ProjectDashboardData = {
-          project,
-          transactions,
-          metrics: calculateMetrics(transactions),
-          rubricas: groupByRubrica(transactions),
-          monthly: groupByMonth(transactions),
-        };
+        const dashboardData = await getProjectDashboardBySlug(slug);
 
         if (active) setData(dashboardData);
       } catch (err) {
