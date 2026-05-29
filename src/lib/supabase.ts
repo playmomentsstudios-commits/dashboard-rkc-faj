@@ -1,13 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Project, Transaction } from '../types/supabase';
+import type { Transaction } from '../types/supabase';
 
 type PublicSchema = {
   Tables: {
-    projects: {
-      Row: Project;
-      Insert: never;
-      Update: never;
-    };
     transactions: {
       Row: Transaction;
       Insert: never;
@@ -45,9 +40,8 @@ export const supabaseConfigError = missingEnvNames.length
     ? 'VITE_SUPABASE_URL deve ser a URL HTTPS do projeto Supabase, por exemplo https://seu-projeto.supabase.co.'
     : null;
 
-// The client is still created with safe placeholders so the React bundle can render
-// an actionable error state instead of crashing during module initialization when
-// an environment variable is missing in production.
+// O cliente é criado com placeholders seguros para que o dashboard original
+// consiga exibir uma mensagem clara caso as variáveis não estejam definidas.
 const clientUrl = supabaseUrl || 'https://missing-project.supabase.co';
 const clientAnonKey = supabaseAnonKey || 'missing-anon-key';
 
@@ -59,7 +53,7 @@ export const supabase = createClient<SupabaseDatabase>(clientUrl, clientAnonKey,
   },
   global: {
     headers: {
-      'X-Client-Info': 'dashboard-rkc-faj-public',
+      'X-Client-Info': 'dashboard-rkc-faj-original',
     },
   },
 });

@@ -1,6 +1,6 @@
 # Supabase
 
-Este diretório contém a migração inicial do banco de dados para o dashboard financeiro.
+Este diretório contém a migração inicial do banco de dados para o dashboard financeiro original.
 
 ## Aplicar o schema
 
@@ -15,8 +15,7 @@ Ou cole o conteúdo de `migrations/20260529000000_initial_public_finance_schema.
 ## Estrutura criada
 
 - Extensão `pgcrypto` para gerar UUIDs com `gen_random_uuid()`.
-- Tabela pública `projects` com dados dos projetos e slug único.
-- Tabela pública `transactions` vinculada aos projetos, com valores solicitados/executados e URL do comprovante.
-- Índices para busca por `projects.slug` e relacionamento `transactions.project_id`.
-- RLS habilitado nas duas tabelas, com políticas públicas apenas de leitura.
-- Bucket público `comprovantes` no Supabase Storage.
+- Tabela pública `transactions` com os dados reais usados pelo dashboard original.
+- Índice para ordenação por data e leitura pública.
+- RLS habilitado na tabela, com política pública apenas de leitura.
+- Bucket público `comprovantes` no Supabase Storage para os PDFs reais.
