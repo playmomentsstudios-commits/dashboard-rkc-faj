@@ -16,7 +16,6 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
-  base: '/faj/',
 
   plugins: [
     figmaAssetResolver(),
