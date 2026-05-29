@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { Sidebar, type Page } from './components/Sidebar';
 import { DashboardGeral } from './components/DashboardGeral';
@@ -10,6 +10,7 @@ import { applySupabaseFinanceData } from './components/data';
 import { getDashboardTransactions } from '../services/dashboard';
 import { AppConfigProvider, useAppConfig } from '../contexts/AppConfigContext';
 import { SkeletonBlock } from '../components/common/SkeletonBlock';
+import { useSupabaseRealtime } from '../hooks/useSupabaseRealtime';
 
 const AdminPanel = lazy(() => import('../features/admin/AdminPanel').then((module) => ({ default: module.AdminPanel })));
 
@@ -19,16 +20,19 @@ function DashboardShell() {
   const [planoTab, setPlanoTab] = useState('atividades');
   const [loadingSupabase, setLoadingSupabase] = useState(true);
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
+  const [, setFinanceRevision] = useState(0);
   const [darkMode, setDarkMode] = useState(false);
   const appConfig = useAppConfig();
 
-  useEffect(() => {
+  const reloadFinanceData = useCallback((showLoading = false) => {
     let active = true;
+    if (showLoading) setLoadingSupabase(true);
 
     getDashboardTransactions()
       .then((transactions) => {
         if (!active) return;
         applySupabaseFinanceData(transactions);
+        setFinanceRevision((revision) => revision + 1);
         setSupabaseError(null);
       })
       .catch((error) => {
@@ -43,6 +47,17 @@ function DashboardShell() {
       active = false;
     };
   }, []);
+
+  useEffect(() => reloadFinanceData(true), [reloadFinanceData]);
+
+  const handleFinanceRealtimeChange = useCallback(() => {
+    reloadFinanceData();
+  }, [reloadFinanceData]);
+
+  useSupabaseRealtime({
+    table: 'transactions',
+    onChange: handleFinanceRealtimeChange,
+  });
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);

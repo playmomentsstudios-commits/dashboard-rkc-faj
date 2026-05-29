@@ -13,9 +13,15 @@ function publicComprovanteUrl(value: string | null | undefined) {
 }
 
 function normalizeMoney(value: unknown) {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') return Number(value.replace(',', '.')) || 0;
-  return 0;
+  if (typeof value === 'number') return Math.round(value * 100) / 100;
+  if (typeof value !== 'string') return 0;
+
+  const sanitized = value.trim().replace(/\s|R\$/g, '');
+  const normalized = sanitized.includes(',')
+    ? sanitized.replace(/\./g, '').replace(',', '.')
+    : sanitized;
+
+  return Math.round((Number(normalized) || 0) * 100) / 100;
 }
 
 function fallbackId() {
@@ -58,7 +64,7 @@ export async function getDashboardTransactions() {
 
   const { data, error } = await supabase
     .from('transactions')
-    .select('*')
+    .select('id,date,title,description,rubrica,solicitado,executado,favorecido,status,comprovante_url,banco,tipo,tx_id')
     .order('date', { ascending: false });
 
   if (error) raiseDashboardDataError(error);
