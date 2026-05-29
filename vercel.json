@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/faj",
+      "destination": "/faj/"
+    },
+    {
       "source": "/faj/(.*)",
       "destination": "/index.html"
     }
