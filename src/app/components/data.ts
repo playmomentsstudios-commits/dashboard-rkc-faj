@@ -1,33 +1,41 @@
 // Period: Dez/2025 → Mai/2026
 export const MESES = ['Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai'];
 
-export let monthlyData = [
-  { mes: 'Dez/25', solicitado: 0,     executado: 0 },
-  { mes: 'Jan/26', solicitado: 12000, executado: 5683.76 },
-  { mes: 'Fev/26', solicitado: 14000, executado: 0 },
-  { mes: 'Mar/26', solicitado: 18000, executado: 0 },
-  { mes: 'Abr/26', solicitado: 20000, executado: 0 },
-  { mes: 'Mai/26', solicitado: 16000, executado: 0 },
+export interface MonthlyFinanceData {
+  mes: string;
+  dateKey: string;
+  solicitado: number;
+  executado: number;
+}
+
+export interface RubricaFinanceData {
+  id: number;
+  nome: string;
+  solicitado: number;
+  executado: number;
+  cor: string;
+  monthlyData: MonthlyFinanceData[];
+}
+
+const fallbackMonthlyData: MonthlyFinanceData[] = [
+  { mes: 'Dez/25', dateKey: '2025-12', solicitado: 16000, executado: 3600 },
+  { mes: 'Jan/26', dateKey: '2026-01', solicitado: 13000, executado: 6725 },
+  { mes: 'Fev/26', dateKey: '2026-02', solicitado: 13500, executado: 13908.06 },
+  { mes: 'Mar/26', dateKey: '2026-03', solicitado: 13000, executado: 6595 },
+  { mes: 'Abr/26', dateKey: '2026-04', solicitado: 9000, executado: 4952 },
+  { mes: 'Mai/26', dateKey: '2026-05', solicitado: 23000, executado: 7450 },
 ];
 
-export let rubricas = [
-  { id: 1, nome: 'Equipe / Jornalismo / Coberturas', solicitado: 72000, executado: 4950,   cor: '#1565C0' },
-  { id: 2, nome: 'Formação e Intercâmbio',           solicitado: 24000, executado: 100,    cor: '#1976D2' },
-  { id: 3, nome: 'Reportagens Especiais',            solicitado: 18000, executado: 0,      cor: '#1E88E5' },
-  { id: 4, nome: 'Equipamentos e Manutenção',        solicitado: 18500, executado: 0,      cor: '#2196F3' },
-  { id: 5, nome: 'Canais Digitais e Site',           solicitado: 15000, executado: 1250,   cor: '#42A5F5' },
-  { id: 6, nome: 'Jornal Impresso / Boletins',       solicitado: 12000, executado: 0,      cor: '#64B5F6' },
-  { id: 7, nome: 'Consultoria Contábil e Jurídica',  solicitado: 12000, executado: 0,      cor: '#90CAF9' },
-  { id: 8, nome: 'Comunicação e Distribuição',       solicitado: 9000,  executado: 383.76, cor: '#0D47A1' },
-  { id: 9, nome: 'Alimentação',                      solicitado: 6000,  executado: 0,      cor: '#1565C0' },
-  { id: 10, nome: 'Hospedagem',                      solicitado: 4500,  executado: 0,      cor: '#1976D2' },
-  { id: 11, nome: 'Reserva Operacional',             solicitado: 7500,  executado: 0,      cor: '#1E88E5' },
+export let monthlyData: MonthlyFinanceData[] = fallbackMonthlyData.map((month) => ({ ...month }));
+
+export let rubricas: RubricaFinanceData[] = [
+  { id: 1, nome: 'Total financeiro', solicitado: 87500, executado: 43229.82, cor: '#1565C0', monthlyData },
 ];
 
-export let totalSolicitado = rubricas.reduce((s, r) => s + r.solicitado, 0); // 198500
-export let totalExecutado  = rubricas.reduce((s, r) => s + r.executado, 0);  // 6683.76
+export let totalSolicitado = 87500;
+export let totalExecutado  = 43229.82;
 export let totalDiferenca  = totalSolicitado - totalExecutado;
-export let percentualExecutado = Math.round((totalExecutado / totalSolicitado) * 1000) / 10; // 1 decimal
+export let percentualExecutado = Math.round((totalExecutado / totalSolicitado) * 10000) / 100;
 
 // Real transactions extracted from comprovantes
 export interface Transacao {
@@ -292,24 +300,43 @@ export interface SupabaseFinanceRow {
   tx_id?: string | null;
 }
 
-type Rubrica = typeof rubricas[number];
-type Monthly = typeof monthlyData[number];
-
 const rubricaColors = ['#1565C0', '#1976D2', '#1E88E5', '#2196F3', '#42A5F5', '#64B5F6', '#90CAF9', '#0D47A1'];
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 
-const moneyNumber = (value: number | string | null | undefined) => Number(value ?? 0) || 0;
+function parseMoney(value: number | string | null | undefined) {
+  if (typeof value === 'number') return value;
+  if (typeof value !== 'string') return 0;
+
+  const sanitized = value.trim().replace(/\s|R\$/g, '');
+  const normalized = sanitized.includes(',')
+    ? sanitized.replace(/\./g, '').replace(',', '.')
+    : sanitized;
+
+  return Number(normalized) || 0;
+}
+
+const toCents = (value: number | string | null | undefined) => Math.round(parseMoney(value) * 100);
+const fromCents = (value: number) => Math.round(value) / 100;
+const moneyNumber = (value: number | string | null | undefined) => fromCents(toCents(value));
 const safeText = (value: string | null | undefined, fallback: string) => value?.trim() || fallback;
 
-function recomputeTotals() {
-  totalSolicitado = rubricas.reduce((sum, rubrica) => sum + rubrica.solicitado, 0);
-  totalExecutado = rubricas.reduce((sum, rubrica) => sum + rubrica.executado, 0);
-  totalDiferenca = totalSolicitado - totalExecutado;
-  percentualExecutado = totalSolicitado > 0 ? Math.round((totalExecutado / totalSolicitado) * 1000) / 10 : 0;
+function sumRows(rows: SupabaseFinanceRow[], field: 'solicitado' | 'executado') {
+  return fromCents(rows.reduce((sum, row) => sum + toCents(row[field]), 0));
+}
+
+function recomputeTotals(rows: SupabaseFinanceRow[]) {
+  totalSolicitado = sumRows(rows, 'solicitado');
+  totalExecutado = sumRows(rows, 'executado');
+  totalDiferenca = fromCents(toCents(totalSolicitado) - toCents(totalExecutado));
+  percentualExecutado = totalSolicitado > 0 ? Math.round((totalExecutado / totalSolicitado) * 10000) / 100 : 0;
+}
+
+function monthKey(value: string | null | undefined) {
+  return value?.slice(0, 7) || 'Sem data';
 }
 
 function monthLabel(value: string) {
-  const date = new Date(`${value}T00:00:00Z`);
+  const date = new Date(`${value}-01T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
   return monthFormatter.format(date).replace('.', '').replace(/^\w/, char => char.toUpperCase());
 }
@@ -326,8 +353,30 @@ function displayFileName(url: string | null | undefined, fallback: string) {
   }
 }
 
+function createEmptyMonth(sort: string): MonthlyFinanceData & { sort: string; solicitadoCents: number; executadoCents: number } {
+  return {
+    mes: sort === 'Sem data' ? 'Sem data' : monthLabel(sort),
+    dateKey: sort,
+    solicitado: 0,
+    executado: 0,
+    solicitadoCents: 0,
+    executadoCents: 0,
+    sort,
+  };
+}
+
+function finalizeMonths(map: Map<string, MonthlyFinanceData & { sort: string; solicitadoCents: number; executadoCents: number }>) {
+  return Array.from(map.values())
+    .sort((a, b) => a.sort.localeCompare(b.sort))
+    .map(({ sort: _sort, solicitadoCents, executadoCents, ...month }) => ({
+      ...month,
+      solicitado: fromCents(solicitadoCents),
+      executado: fromCents(executadoCents),
+    }));
+}
+
 function groupRubricas(rows: SupabaseFinanceRow[]) {
-  const map = new Map<string, Rubrica>();
+  const map = new Map<string, RubricaFinanceData & { solicitadoCents: number; executadoCents: number; monthlyMap: Map<string, MonthlyFinanceData & { sort: string; solicitadoCents: number; executadoCents: number }> }>();
 
   rows.forEach((row) => {
     const nome = safeText(row.rubrica, 'Sem rubrica');
@@ -336,37 +385,47 @@ function groupRubricas(rows: SupabaseFinanceRow[]) {
       nome,
       solicitado: 0,
       executado: 0,
+      solicitadoCents: 0,
+      executadoCents: 0,
       cor: rubricaColors[map.size % rubricaColors.length],
+      monthlyData: [],
+      monthlyMap: new Map(),
     };
+    const requestedCents = toCents(row.solicitado);
+    const executedCents = toCents(row.executado);
+    const sort = monthKey(row.date);
+    const month = current.monthlyMap.get(sort) ?? createEmptyMonth(sort);
 
-    current.solicitado += moneyNumber(row.solicitado);
-    current.executado += moneyNumber(row.executado);
+    current.solicitadoCents += requestedCents;
+    current.executadoCents += executedCents;
+    month.solicitadoCents += requestedCents;
+    month.executadoCents += executedCents;
+    current.monthlyMap.set(sort, month);
     map.set(nome, current);
   });
 
-  return Array.from(map.values()).sort((a, b) => b.executado - a.executado || b.solicitado - a.solicitado);
+  return Array.from(map.values())
+    .map(({ solicitadoCents, executadoCents, monthlyMap, ...rubrica }) => ({
+      ...rubrica,
+      solicitado: fromCents(solicitadoCents),
+      executado: fromCents(executadoCents),
+      monthlyData: finalizeMonths(monthlyMap),
+    }))
+    .sort((a, b) => b.executado - a.executado || b.solicitado - a.solicitado);
 }
 
 function groupMonths(rows: SupabaseFinanceRow[]) {
-  const map = new Map<string, Monthly & { sort: string }>();
+  const map = new Map<string, MonthlyFinanceData & { sort: string; solicitadoCents: number; executadoCents: number }>();
 
   rows.forEach((row) => {
-    const sort = row.date?.slice(0, 7) || 'Sem data';
-    const current = map.get(sort) ?? {
-      mes: row.date ? monthLabel(row.date) : 'Sem data',
-      solicitado: 0,
-      executado: 0,
-      sort,
-    };
-
-    current.solicitado += moneyNumber(row.solicitado);
-    current.executado += moneyNumber(row.executado);
+    const sort = monthKey(row.date);
+    const current = map.get(sort) ?? createEmptyMonth(sort);
+    current.solicitadoCents += toCents(row.solicitado);
+    current.executadoCents += toCents(row.executado);
     map.set(sort, current);
   });
 
-  return Array.from(map.values())
-    .sort((a, b) => a.sort.localeCompare(b.sort))
-    .map(({ sort: _sort, ...month }) => month);
+  return finalizeMonths(map);
 }
 
 function mapTransacao(row: SupabaseFinanceRow, index: number): Transacao {
@@ -399,5 +458,5 @@ export function applySupabaseFinanceData(rows: SupabaseFinanceRow[]) {
   rubricas = groupRubricas(normalized);
   monthlyData = groupMonths(normalized);
   transacoes = normalized.map(mapTransacao).sort((a, b) => b.dataISO.localeCompare(a.dataISO));
-  recomputeTotals();
+  recomputeTotals(normalized);
 }

@@ -10,9 +10,9 @@ export function DashboardGeral() {
     .filter(r => r.executado > 0)
     .map((r, i) => ({ name: r.nome.split('/')[0].trim(), value: r.executado, fill: PIE_COLORS[i % PIE_COLORS.length] }));
 
-  const acum = monthlyData.map((m, i) => ({
+  const monthlyRows = monthlyData.map((m) => ({
     ...m,
-    acumExec: monthlyData.slice(0, i + 1).reduce((a, b) => a + b.executado, 0),
+    saldo: m.solicitado - m.executado,
   }));
 
   return (
@@ -77,11 +77,11 @@ export function DashboardGeral() {
         </div>
       </div>
 
-      {/* Evolução acumulada */}
+      {/* Evolução mensal */}
       <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
-        <h3 className="text-sm text-muted-foreground mb-4">Evolução Acumulada — Dez/25 a Mai/26</h3>
+        <h3 className="text-sm text-muted-foreground mb-4">Evolução Mensal — valores do mês</h3>
         <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={acum}>
+          <AreaChart data={monthlyRows}>
             <defs>
               <linearGradient id="gradExec" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#1565C0" stopOpacity={0.25} />
@@ -97,8 +97,8 @@ export function DashboardGeral() {
             <YAxis tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#5A6A85' }} />
             <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatCurrency(v)} />
             <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-            <Area type="monotone" dataKey="solicitado" name="Solicitado (mensal)" stroke="#90CAF9" fill="url(#gradSol)" strokeWidth={2} strokeDasharray="4 2" />
-            <Area type="monotone" dataKey="acumExec" name="Executado (acumulado)" stroke="#1565C0" fill="url(#gradExec)" strokeWidth={2.5} dot={{ r: 4, fill: '#1565C0' }} />
+            <Area type="monotone" dataKey="solicitado" name="Solicitado no mês" stroke="#90CAF9" fill="url(#gradSol)" strokeWidth={2} strokeDasharray="4 2" />
+            <Area type="monotone" dataKey="executado" name="Executado no mês" stroke="#1565C0" fill="url(#gradExec)" strokeWidth={2.5} dot={{ r: 4, fill: '#1565C0' }} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

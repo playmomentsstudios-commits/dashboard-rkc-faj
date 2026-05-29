@@ -47,11 +47,9 @@ export function Financeiro({ activeTab, setActiveTab }: FinanceiroProps) {
 }
 
 function ResumoFinanceiro() {
-  const acum = monthlyData.map((m, i) => ({
+  const monthlyRows = monthlyData.map((m) => ({
     ...m,
-    acumSol: monthlyData.slice(0, i + 1).reduce((a, b) => a + b.solicitado, 0),
-    acumExec: monthlyData.slice(0, i + 1).reduce((a, b) => a + b.executado, 0),
-    saldo: monthlyData.slice(0, i + 1).reduce((a, b) => a + b.solicitado - b.executado, 0),
+    saldo: m.solicitado - m.executado,
   }));
 
   return (
@@ -78,21 +76,20 @@ function ResumoFinanceiro() {
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-border">
-              {['Mês', 'Solicitado', 'Executado', 'Saldo Mensal', 'Acum. Executado', '% Executado'].map(h => (
+              {['Mês', 'Solicitado', 'Executado', 'Saldo Mensal', '% Executado'].map(h => (
                 <th key={h} className="text-left py-2 pr-4 text-muted-foreground font-medium">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {acum.map((row, i) => {
-              const pct = Math.round((row.executado / row.solicitado) * 100);
+            {monthlyRows.map((row, i) => {
+              const pct = row.solicitado > 0 ? Math.round((row.executado / row.solicitado) * 100) : 0;
               return (
                 <tr key={i} className="border-b border-border/50 hover:bg-secondary/40 transition-colors">
-                  <td className="py-2.5 pr-4 font-medium text-foreground">{row.mes}/2026</td>
+                  <td className="py-2.5 pr-4 font-medium text-foreground">{row.mes}</td>
                   <td className="py-2.5 pr-4 tabular-nums text-muted-foreground">{formatCurrency(row.solicitado)}</td>
                   <td className="py-2.5 pr-4 tabular-nums text-primary font-medium">{formatCurrency(row.executado)}</td>
-                  <td className="py-2.5 pr-4 tabular-nums text-muted-foreground">{formatCurrency(row.solicitado - row.executado)}</td>
-                  <td className="py-2.5 pr-4 tabular-nums text-foreground">{formatCurrency(row.acumExec)}</td>
+                  <td className="py-2.5 pr-4 tabular-nums text-muted-foreground">{formatCurrency(row.saldo)}</td>
                   <td className="py-2.5">
                     <div className="flex items-center gap-2">
                       <div className="h-1.5 w-16 bg-secondary rounded-full overflow-hidden">
@@ -109,7 +106,6 @@ function ResumoFinanceiro() {
               <td className="py-2.5 pr-4 tabular-nums text-foreground">{formatCurrency(totalSolicitado)}</td>
               <td className="py-2.5 pr-4 tabular-nums text-primary">{formatCurrency(totalExecutado)}</td>
               <td className="py-2.5 pr-4 tabular-nums text-foreground">{formatCurrency(totalDiferenca)}</td>
-              <td className="py-2.5 pr-4 tabular-nums text-foreground">—</td>
               <td className="py-2.5 text-primary">{percentualExecutado}%</td>
             </tr>
           </tbody>
@@ -118,9 +114,9 @@ function ResumoFinanceiro() {
 
       {/* Indicadores saldo */}
       <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
-        <h3 className="text-sm text-muted-foreground mb-4">Indicador de Saldo Acumulado</h3>
+        <h3 className="text-sm text-muted-foreground mb-4">Saldo Disponível por Mês</h3>
         <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={acum}>
+          <AreaChart data={monthlyRows}>
             <defs>
               <linearGradient id="gradSaldo" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#1565C0" stopOpacity={0.2} />
@@ -131,7 +127,7 @@ function ResumoFinanceiro() {
             <XAxis dataKey="mes" tick={{ fontSize: 12, fill: '#5A6A85' }} />
             <YAxis tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#5A6A85' }} />
             <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatCurrency(v)} />
-            <Area type="monotone" dataKey="saldo" name="Saldo Disponível" stroke="#1565C0" fill="url(#gradSaldo)" strokeWidth={2} />
+            <Area type="monotone" dataKey="saldo" name="Saldo mensal disponível" stroke="#1565C0" fill="url(#gradSaldo)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -143,20 +139,11 @@ function Rubricas() {
   const [selected, setSelected] = useState<number | null>(null);
   const sel = rubricas.find(r => r.id === selected);
 
-  const rubricaMonth = [
-    { mes: 'Jan', solicitado: 6000, executado: 4000 },
-    { mes: 'Fev', solicitado: 6000, executado: 5200 },
-    { mes: 'Mar', solicitado: 6000, executado: 4800 },
-    { mes: 'Abr', solicitado: 6000, executado: 5500 },
-    { mes: 'Mai', solicitado: 6000, executado: 3800 },
-    { mes: 'Jun', solicitado: 6000, executado: 2200 },
-  ];
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {rubricas.map(r => {
-          const pct = Math.round((r.executado / r.solicitado) * 100);
+          const pct = r.solicitado > 0 ? Math.round((r.executado / r.solicitado) * 100) : 0;
           return (
             <button
               key={r.id}
@@ -190,9 +177,9 @@ function Rubricas() {
       {sel && (
         <div className="bg-card rounded-xl p-5 shadow-sm border border-primary/30">
           <h3 className="text-sm font-medium text-foreground mb-1">{sel.nome}</h3>
-          <p className="text-xs text-muted-foreground mb-4">Evolução mensal estimada</p>
+          <p className="text-xs text-muted-foreground mb-4">Evolução mensal por transações da rubrica</p>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={rubricaMonth} barGap={4}>
+            <BarChart data={sel.monthlyData} barGap={4}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E3EAF6" />
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: '#5A6A85' }} />
               <YAxis tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#5A6A85' }} />
@@ -272,11 +259,11 @@ function ComparativoMensal() {
           </thead>
           <tbody>
             {monthlyData.map((row, i) => {
-              const pct = Math.round((row.executado / row.solicitado) * 100);
+              const pct = row.solicitado > 0 ? Math.round((row.executado / row.solicitado) * 100) : 0;
               const diff = row.solicitado - row.executado;
               return (
                 <tr key={i} className="border-b border-border/50 hover:bg-secondary/40 transition-colors">
-                  <td className="py-2.5 pr-6 font-medium text-foreground">{row.mes}/2026</td>
+                  <td className="py-2.5 pr-6 font-medium text-foreground">{row.mes}</td>
                   <td className="py-2.5 pr-6 tabular-nums text-muted-foreground">{formatCurrency(row.solicitado)}</td>
                   <td className="py-2.5 pr-6 tabular-nums text-primary font-medium">{formatCurrency(row.executado)}</td>
                   <td className="py-2.5 pr-6 tabular-nums text-muted-foreground">{formatCurrency(diff)}</td>
