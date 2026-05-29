@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { LayoutDashboard, TrendingUp, ClipboardList, FileText, Receipt, ChevronDown, ChevronRight, Menu, X } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { LayoutDashboard, TrendingUp, ClipboardList, FileText, Receipt, ChevronDown, ChevronRight, Menu, X, ShieldCheck } from 'lucide-react';
 import fajLogo from '../../imports/FAJ-Azul.png';
 import kaluLogo from '../../imports/logo_negativa_RKC.png';
+import { useAppConfig } from '../../contexts/AppConfigContext';
 
-export type Page = 'dashboard' | 'financeiro' | 'plano' | 'relatorios' | 'prestacao';
+export type Page = 'dashboard' | 'financeiro' | 'plano' | 'relatorios' | 'prestacao' | 'admin';
 
 interface SidebarProps {
   current: Page;
@@ -19,8 +21,11 @@ export function Sidebar({ current, onChange, financTab, setFinancTab, planoTab, 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [financOpen, setFinancOpen] = useState(true);
   const [planoOpen, setPlanoOpen] = useState(false);
+  const { logos } = useAppConfig();
+  const fajLogoSrc = logos.faj?.public_url ?? fajLogo;
+  const kalungaLogoSrc = logos.kalunga?.public_url ?? kaluLogo;
 
-  const nav = (icon: React.ReactNode, label: string, page: Page, hasChildren?: boolean, isOpen?: boolean, onToggle?: () => void) => {
+  const nav = (icon: ReactNode, label: string, page: Page, hasChildren?: boolean, isOpen?: boolean, onToggle?: () => void) => {
     const active = current === page;
     return (
       <button
@@ -57,7 +62,7 @@ export function Sidebar({ current, onChange, financTab, setFinancTab, planoTab, 
       <div className="flex items-center justify-between px-4 py-4 border-b border-white/10 shrink-0">
         {!collapsed && (
           <div className="space-y-1.5">
-            <img src={fajLogo} alt="FAJ" className="h-7 object-contain brightness-0 invert" />
+            <img src={fajLogoSrc} alt="FAJ" className="h-7 object-contain brightness-0 invert" />
           </div>
         )}
         <button onClick={() => setCollapsed(v => !v)} className="text-white/60 hover:text-white p-1 rounded ml-auto">
@@ -67,7 +72,7 @@ export function Sidebar({ current, onChange, financTab, setFinancTab, planoTab, 
 
       {!collapsed && (
         <div className="px-4 py-3 border-b border-white/10 shrink-0">
-          <img src={kaluLogo} alt="Rede Kalunga" className="h-6 object-contain opacity-90" />
+          <img src={kalungaLogoSrc} alt="Rede Kalunga" className="h-6 object-contain opacity-90" />
         </div>
       )}
 
@@ -96,6 +101,7 @@ export function Sidebar({ current, onChange, financTab, setFinancTab, planoTab, 
         )}
 
         {nav(<FileText size={17}/>, 'Relatórios', 'relatorios')}
+        {nav(<ShieldCheck size={17}/>, 'Admin', 'admin')}
       </nav>
 
       {!collapsed && (
@@ -119,7 +125,7 @@ export function Sidebar({ current, onChange, financTab, setFinancTab, planoTab, 
 
       {/* Mobile topbar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 shadow-lg" style={{ background: '#0D47A1' }}>
-        <img src={fajLogo} alt="FAJ" className="h-7 object-contain brightness-0 invert" />
+        <img src={fajLogoSrc} alt="FAJ" className="h-7 object-contain brightness-0 invert" />
         <button onClick={() => setMobileOpen(v => !v)} className="text-white p-1.5">
           {mobileOpen ? <X size={22}/> : <Menu size={22}/>}
         </button>

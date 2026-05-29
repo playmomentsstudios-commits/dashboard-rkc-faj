@@ -28,6 +28,19 @@ export default defineConfig({
     alias: {
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
+      '@supabase/supabase-js': path.resolve(__dirname, './src/lib/supabaseClientShim.ts'),
+    },
+  },
+
+  build: {
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          charts: ['recharts'],
+          ui: ['lucide-react'],
+        },
+      },
     },
   },
 

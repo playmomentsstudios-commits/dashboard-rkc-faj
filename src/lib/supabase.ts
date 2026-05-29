@@ -1,13 +1,45 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Transaction } from '../types/supabase';
+import type { AppSetting, AuditLog, BrandLogo, ManagedAsset, PricingPlan } from '../types/admin';
 
 type PublicSchema = {
   Tables: {
     transactions: {
       Row: Transaction;
-      Insert: never;
-      Update: never;
+      Insert: Partial<Transaction>;
+      Update: Partial<Transaction>;
     };
+    app_settings: {
+      Row: AppSetting;
+      Insert: Partial<AppSetting>;
+      Update: Partial<AppSetting>;
+    };
+    brand_logos: {
+      Row: BrandLogo;
+      Insert: Partial<BrandLogo>;
+      Update: Partial<BrandLogo>;
+    };
+    managed_assets: {
+      Row: ManagedAsset;
+      Insert: Partial<ManagedAsset>;
+      Update: Partial<ManagedAsset>;
+    };
+    pricing_plans: {
+      Row: PricingPlan;
+      Insert: Partial<PricingPlan>;
+      Update: Partial<PricingPlan>;
+    };
+    audit_logs: {
+      Row: AuditLog;
+      Insert: Partial<AuditLog>;
+      Update: Partial<AuditLog>;
+    };
+    profiles: {
+      Row: { id: string; role: string | null };
+      Insert: { id: string; role?: string | null };
+      Update: { role?: string | null };
+    };
+
   };
   Views: Record<string, never>;
   Functions: Record<string, never>;
@@ -53,7 +85,7 @@ export const supabase = createClient<SupabaseDatabase>(clientUrl, clientAnonKey,
   },
   global: {
     headers: {
-      'X-Client-Info': 'dashboard-rkc-faj-original',
+      'X-Client-Info': 'dashboard-rkc-faj-enterprise',
     },
   },
 });
